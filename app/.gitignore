@@ -1,0 +1,76 @@
+/build
+
+# Gradle
+.gradle/
+build/
+
+# Local configuration files
+/local.properties
+/.idea/
+/*.iml
+
+# Log files
+*.log
+
+# Android Studio files
+/captures/
+/.idea/workspace.xml
+.idea/libraries/
+/.idea/modules.xml
+.idea/caches/
+/.idea/compiler.xml
+.idea/assetWizardSettings.xml
+.idea/gradle.xml
+.idea/encodings.xml
+.idea/vcs.xml
+
+# Keystore files (important for security)
+*.jks
+*.keystore
+
+# MacOS files
+.DS_Store
+
+# Windows files
+Thumbs.db
+ehthumbs.db
+
+# Generated files
+*.apk
+*.ap_
+*.dex
+*.class
+*.jar
+*.war
+*.ear
+*.db
+*.sqlite
+*.bin
+*.lock
+*.hprof
+
+# ProGuard
+/proguard-rules.pro~
+
+# IntelliJ
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/dictionaries
+
+# Build artifacts
+outputs/
+releases/
+
+# Gradle Wrapper
+/gradle/wrapper/gradle-wrapper.properties~
+.gradle-wrapper.jar
+
+# Android Studio Crashlytics (optional)
+crashlytics.properties
+crashlytics-build.properties
+
+# Jetpack Compose preview cache
+.idea/compose-preview/
+
+# NDK
+/.cxx/
