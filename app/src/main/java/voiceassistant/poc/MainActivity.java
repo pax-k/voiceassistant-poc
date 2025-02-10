@@ -15,7 +15,7 @@ import androidx.navigation.ui.NavigationUI;
 
 import ai.onnxruntime.OrtException;
 import voiceassistant.poc.databinding.ActivityMainBinding;
-import voiceassistant.poc.mylibrary.OnnxSpeechRecognizer;
+import voiceassistant.poc.mylibrary.OnnxReader;
 
 import android.view.Menu;
 import android.view.MenuItem;
@@ -25,7 +25,7 @@ public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
-    private OnnxSpeechRecognizer speechRecognizer;
+    private OnnxReader speechRecognizer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Initialize speech recognizer
         try {
-            speechRecognizer = new OnnxSpeechRecognizer(this, "/assets/model.onnx");
+            speechRecognizer = new OnnxReader(this, "/assets/model.onnx");
         } catch (Exception e) {
             Snackbar.make(binding.getRoot(), "Failed to initialize speech recognizer: " + e.getMessage(), 
                          Snackbar.LENGTH_LONG).show();

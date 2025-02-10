@@ -9,12 +9,12 @@ import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtSession;
 import ai.onnxruntime.OrtException;
 
-public class OnnxSpeechRecognizer {
+public class OnnxReader {
 
     private OrtEnvironment env;
     private OrtSession session;
 
-    public OnnxSpeechRecognizer(Context context, String assetFileName) throws IOException, OrtException {
+    public OnnxReader(Context context, String assetFileName) throws IOException, OrtException {
         byte[] modelBytes = loadModelFile(context, assetFileName);
         initializeOrtSession(modelBytes);
     }
