@@ -63,20 +63,41 @@ public class FirstFragment extends Fragment {
     }
 
     private void performInference(String inputText) {
-        try {
-            String result = onnxReader.performInference(inputText);
-            showSuccess("Model output: " + result);
-        } catch (OrtException e) {
-            showError("Inference failed: " + e.getMessage());
-        }
+        // Disable the submit button while processing
+        binding.submitButton.setEnabled(false);
+//        binding.progressBar.setVisibility(View.VISIBLE);
+
+        // Create a new thread for inference
+        new Thread(() -> {
+            try {
+                String result = onnxReader.performInference(inputText);
+                // Update UI on main thread
+                requireActivity().runOnUiThread(() -> {
+                    showSuccess("Model output: " + result);
+                    binding.submitButton.setEnabled(true);
+//                    binding.progressBar.setVisibility(View.GONE);
+                });
+            } catch (OrtException e) {
+                // Handle error on main thread
+                requireActivity().runOnUiThread(() -> {
+                    showError("Inference failed: " + e.getMessage());
+                    binding.submitButton.setEnabled(true);
+//                    binding.progressBar.setVisibility(View.GONE);
+                });
+            }
+        }).start();
     }
 
     private void showError(String message) {
-        Snackbar.make(requireView(), message, Snackbar.LENGTH_LONG).show();
+        if (isAdded()) {  // Check if fragment is still attached
+            Snackbar.make(requireView(), message, Snackbar.LENGTH_LONG).show();
+        }
     }
 
     private void showSuccess(String message) {
-        Snackbar.make(requireView(), message, Snackbar.LENGTH_LONG).show();
+        if (isAdded()) {  // Check if fragment is still attached
+            Snackbar.make(requireView(), message, Snackbar.LENGTH_LONG).show();
+        }
     }
 
     @Override

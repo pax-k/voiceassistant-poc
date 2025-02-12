@@ -17,7 +17,7 @@ public class Tokenizer {
     private final long PAD_TOKEN_ID = 0L;  // Assume 0 is the ID for padding token
 
     public Tokenizer(Context context) throws Exception {
-        this.vocab = loadVocab(context, "tokenizer_vocab.json");
+        this.vocab = loadVocab(context, "tokenizer_vocabb.json");
         this.reverseVocab = new HashMap<>();
         for (Map.Entry<String, Long> entry : vocab.entrySet()) {
             reverseVocab.put(entry.getValue(), entry.getKey());
@@ -108,7 +108,14 @@ public class Tokenizer {
     public String detokenize(long[] tokenIds) {
         StringBuilder result = new StringBuilder();
         for (long id : tokenIds) {
-            result.append(reverseVocab.getOrDefault(id, "[UNK]")).append(" ");
+            String token = reverseVocab.getOrDefault(id, "");
+            // Skip empty tokens and add space between words
+            if (!token.isEmpty()) {
+                if (result.length() > 0) {
+                    result.append(" ");
+                }
+                result.append(token);
+            }
         }
         return result.toString().trim();
     }

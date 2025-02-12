@@ -49,7 +49,10 @@ android {
 }
 
 dependencies {
-
+//    implementation 'com.microsoft.onnxruntime:onnxruntime-android:latest.release'  // Base dependency
+//    implementation 'com.microsoft.onnxruntime:onnxruntime-extensions:latest.release'  // For Model class
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:latest.release")
+    implementation ("com.microsoft.onnxruntime:onnxruntime-extensions:latest.release")
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.constraintlayout)

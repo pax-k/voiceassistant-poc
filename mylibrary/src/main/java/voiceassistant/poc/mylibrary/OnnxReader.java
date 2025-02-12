@@ -2,6 +2,9 @@ package voiceassistant.poc.mylibrary;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+
+//import androidx.xr.scenecore.Model;
+
 import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -17,12 +20,19 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+// import ai.onnxruntime.OnnxRuntime;
+// import ai.onnxruntime.OrtEnvironment;
+// import ai.onnxruntime.OrtSession;
+// import ai.onnxruntime.OrtException;
+//import ai.onnxruntime.providers.cpu.CPUProviderOptions;
+//import ai.onnxruntime.Model;
 
 public class OnnxReader {
 
     private OrtEnvironment env;
     private OrtSession session;
     private final Tokenizer tokenizer;
+//    private Model onnxModel;
 
     public OnnxReader(Context context, String assetFileName, Tokenizer tokenizer) throws IOException, OrtException {
         this.tokenizer = tokenizer;
@@ -38,7 +48,7 @@ public class OnnxReader {
 
         // Get the file size
         long fileSize = inputStream.available();
-        if (fileSize > Runtime.getRuntime().maxMemory() / 4) {
+        if (fileSize > Runtime.getRuntime().maxMemory() / 2) {
             throw new IOException("Model file is too large to load into memory");
         }
 
@@ -74,23 +84,56 @@ public class OnnxReader {
             inputs.put("attention_mask", attentionTensor);
 //            inputs.put("past_key_values", OnnxTensor.createTensor(env, new float[0]));  // Empty tensor
 //            inputs.put("past_key_values",null);
-//            for (int i = 0; i < 12; i++) {
-//                String keyName = "past_key_values." + i + ".key";
-//                String valueName = "past_key_values." + i + ".value";
-//
-//                OnnxTensor keyTensor = OnnxTensor.createTensor(env, null);
-//                OnnxTensor valueTensor = OnnxTensor.createTensor(env, null);
-//
-//                inputs.put(keyName, keyTensor);
-//                inputs.put(valueName, valueTensor);
-//            }
+            int batchSize = 1;
+            int numLayers = 30;  // 23 layers for past_key_values
+            int numHeads = 3;    // From the model shape info: 3 heads
+            int headDim = 64;    // As per the model
+            int pastLength = 64; // past_sequence_length
 
+// Provide empty past_key_values tensors for each layer
+            for (int i = 0; i < numLayers; i++) {
+                long[] shape = {batchSize, numHeads, pastLength, headDim};
+
+                // Create empty tensor (of zeros) for past_key_values
+                OnnxTensor emptyTensor = OnnxTensor.createTensor(env, FloatBuffer.allocate(batchSize * numHeads * pastLength * headDim), shape);
+
+                // Add empty past key and value tensors to the input map
+                inputs.put("past_key_values." + i + ".key", emptyTensor);
+                inputs.put("past_key_values." + i + ".value", emptyTensor);
+            }
             OrtSession.Result result = session.run(inputs);
 
-            long[] outputTokens = (long[]) result.get(0).getValue();
+            // Handle float array output
+            float[][][] outputArray = (float[][][]) result.get(0).getValue();
+            // Convert highest probability tokens to token IDs
+            long[] outputTokens = convertOutputToTokens(outputArray);
             return tokenizer.detokenize(outputTokens);
         }
     }
+
+    private long[] convertOutputToTokens(float[][][] output) {
+        // Assuming output shape is [batch_size, sequence_length, vocab_size]
+        int seqLength = output[0].length;
+        long[] tokens = new long[seqLength];
+        
+        // For each position in the sequence
+        for (int i = 0; i < seqLength; i++) {
+            float[] logits = output[0][i];
+            // Find the token with highest probability
+            int maxIndex = 0;
+            float maxValue = logits[0];
+            
+            for (int j = 1; j < logits.length; j++) {
+                if (logits[j] > maxValue) {
+                    maxValue = logits[j];
+                    maxIndex = j;
+                }
+            }
+            tokens[i] = maxIndex;
+        }
+        return tokens;
+    }
+
     public OrtSession getSession() {
         return session;
     }
@@ -102,6 +145,9 @@ public class OnnxReader {
         if (env != null) {
             env.close();
         }
+//        if (onnxModel != null) {
+//            onnxModel.close();
+//        }
     }
 
     public String performInference(String inputText) throws OrtException {
@@ -150,4 +196,24 @@ public class OnnxReader {
         }
         return result.toString().trim();
     }
+
+    /**
+     * Alternative initializer using ONNX Runtime's Model and Tokenizer classes
+     * @param modelPath Path to the ONNX model file
+     * @throws IOException If model file cannot be read
+     * @throws OrtException If there's an error initializing the ONNX Runtime
+     */
+//    public static OnnxReader createFromModelPath(String modelPath) throws IOException, OrtException {
+//        Model onnxModel = new Model(modelPath);
+//        Tokenizer onnxTokenizer = onnxModel.createTokenizer();
+//
+//        // Create a dummy context since we're not using assets
+//        Context dummyContext = null;
+//        OnnxReader reader = new OnnxReader(dummyContext, modelPath, onnxTokenizer);
+//
+//        // Store the model reference for proper cleanup
+//        reader.onnxModel = onnxModel;
+//
+//        return reader;
+//    }
 }
