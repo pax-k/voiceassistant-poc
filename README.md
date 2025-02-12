@@ -1,4 +1,16 @@
-# Project Setup Guide
+# Project Setup guide
+
+### Step 1: Load project in Android Studio
+
+
+### Step 2: Download the onnx model: model_q4f16.onnx from here: https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct/tree/main/onnx 
+
+### Step 3: Place the onnx models here: mylibrary/src/main/assets
+
+
+
+
+# Project developer journal
 
 This guide explains the steps to set up a project with a basic views activity and integrate ONNX for machine learning inference.
 
