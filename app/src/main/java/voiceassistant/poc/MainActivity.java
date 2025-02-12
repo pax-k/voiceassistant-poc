@@ -17,6 +17,9 @@ import ai.onnxruntime.OrtException;
 import voiceassistant.poc.databinding.ActivityMainBinding;
 import voiceassistant.poc.mylibrary.OnnxReader;
 
+
+import voiceassistant.poc.mylibrary.Tokenizer;
+
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -34,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         initializeOnnxModel();
         setContentView(binding.getRoot());
-
+        initializeOnnxModel();
         setSupportActionBar(binding.toolbar);
 
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
@@ -65,7 +68,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeOnnxModel() {
         try {
-            onnxReader = new OnnxReader(this, "model_q4f16.onnx");
+            Tokenizer tokenizer = new Tokenizer(this);
+            onnxReader = new OnnxReader(this, "model_q4f16.onnx", tokenizer);
         } catch (Exception e) {
             Snackbar.make(binding.getRoot(), "Failed to initialize model: " + e.getMessage(),
                     Snackbar.LENGTH_LONG).show();

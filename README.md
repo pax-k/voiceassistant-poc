@@ -61,3 +61,7 @@ This guide explains the steps to set up a project with a basic views activity an
     1. Use the `OnnxReader` class to load the model.
     2. Process input data through the model.
     3. Display or utilize the output as needed.
+
+### Step 8: Implement the Tokenizer Class Using JSON File
+- **Location**: `mylibrary` module.
+- **Task**: Create a tokenizer class that processes input text into `input_ids` and `attention_mask`.

@@ -13,15 +13,19 @@ import ai.onnxruntime.OnnxTensor;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.LongBuffer;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
 
 public class OnnxReader {
 
     private OrtEnvironment env;
     private OrtSession session;
+    private final Tokenizer tokenizer;
 
-    public OnnxReader(Context context, String assetFileName) throws IOException, OrtException {
+    public OnnxReader(Context context, String assetFileName, Tokenizer tokenizer) throws IOException, OrtException {
+        this.tokenizer = tokenizer;
         byte[] modelBytes = loadModelFile(context, assetFileName);
         env = OrtEnvironment.getEnvironment();
         OrtSession.SessionOptions opts = new OrtSession.SessionOptions();
@@ -54,6 +58,39 @@ public class OnnxReader {
         return outputStream.toByteArray();
     }
 
+
+    private String generateResponse(String prompt) throws OrtException {
+        // Tokenize the input with a max length of 10 (padding applied if needed)
+        Tokenizer.TokenizedOutput output = tokenizer.tokenize(prompt);
+        long[] inputIds = output.getInputIds();
+        long[] attentionMask = output.getAttentionMask();
+        long[] inputShape = new long[]{1, inputIds.length};
+
+        try (OnnxTensor inputTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(inputIds), inputShape);
+             OnnxTensor attentionTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(attentionMask), inputShape)) {
+            
+            Map<String, OnnxTensor> inputs = new HashMap<>();
+            inputs.put("input_ids", inputTensor);
+            inputs.put("attention_mask", attentionTensor);
+//            inputs.put("past_key_values", OnnxTensor.createTensor(env, new float[0]));  // Empty tensor
+//            inputs.put("past_key_values",null);
+//            for (int i = 0; i < 12; i++) {
+//                String keyName = "past_key_values." + i + ".key";
+//                String valueName = "past_key_values." + i + ".value";
+//
+//                OnnxTensor keyTensor = OnnxTensor.createTensor(env, null);
+//                OnnxTensor valueTensor = OnnxTensor.createTensor(env, null);
+//
+//                inputs.put(keyName, keyTensor);
+//                inputs.put(valueName, valueTensor);
+//            }
+
+            OrtSession.Result result = session.run(inputs);
+
+            long[] outputTokens = (long[]) result.get(0).getValue();
+            return tokenizer.detokenize(outputTokens);
+        }
+    }
     public OrtSession getSession() {
         return session;
     }
@@ -69,24 +106,28 @@ public class OnnxReader {
 
     public String performInference(String inputText) throws OrtException {
         // Create input tensor
-        OnnxTensor inputTensor = createInputTensor(inputText);
 
-        // Run inference
-        Map<String, OnnxTensor> inputs = new HashMap<>();
-        inputs.put("input_ids", inputTensor);  // Replace "input" with your model's actual input name
 
-        try {
-            OrtSession.Result result = session.run(inputs);
 
-            // Process the output tensor
-            OnnxTensor outputTensor = (OnnxTensor) result.get(0);
-            // Convert output tensor to string - adjust based on your model's output format
-            float[] outputData = (float[]) outputTensor.getValue();
-
-            return processOutput(outputData);
-        } finally {
-            inputTensor.close();
-        }
+       return generateResponse(inputText);
+//        OnnxTensor inputTensor = createInputTensor(inputText);
+//
+//        // Run inference
+//        Map<String, OnnxTensor> inputs = new HashMap<>();
+//        inputs.put("input_ids", inputTensor);  // Replace "input" with your model's actual input name
+//
+//        try {
+//            OrtSession.Result result = session.run(inputs);
+//
+//            // Process the output tensor
+//            OnnxTensor outputTensor = (OnnxTensor) result.get(0);
+//            // Convert output tensor to string - adjust based on your model's output format
+//            float[] outputData = (float[]) outputTensor.getValue();
+//
+//            return processOutput(outputData);
+//        } finally {
+//            inputTensor.close();
+//        }
     }
     private OnnxTensor createInputTensor(String inputText) throws OrtException {
         // Convert input text to the format your model expects
