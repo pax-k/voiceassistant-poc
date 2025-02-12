@@ -14,6 +14,16 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += mapOf(
+                    "room.incremental" to "true",
+                    "room.expandProjection" to "true"
+                )
+            }
+        }
     }
 
     buildTypes {
@@ -31,6 +41,10 @@ android {
     }
     buildFeatures {
         viewBinding = true
+    }
+
+    dexOptions {
+        javaMaxHeapSize = "8g" // Adjust heap size as needed
     }
 }
 

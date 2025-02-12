@@ -8,6 +8,13 @@ import java.io.IOException;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtSession;
 import ai.onnxruntime.OrtException;
+import java.io.BufferedInputStream;
+import ai.onnxruntime.OnnxTensor;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+import java.nio.LongBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 public class OnnxReader {
 
@@ -16,34 +23,35 @@ public class OnnxReader {
 
     public OnnxReader(Context context, String assetFileName) throws IOException, OrtException {
         byte[] modelBytes = loadModelFile(context, assetFileName);
-        initializeOrtSession(modelBytes);
+        env = OrtEnvironment.getEnvironment();
+        OrtSession.SessionOptions opts = new OrtSession.SessionOptions();
+        session = env.createSession(modelBytes, opts);
     }
 
     private byte[] loadModelFile(Context context, String assetFileName) throws IOException {
         AssetManager assetManager = context.getAssets();
-        try (InputStream is = assetManager.open(assetFileName);
-             ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
-            int nRead;
-            byte[] data = new byte[16384];
-            while ((nRead = is.read(data, 0, data.length)) != -1) {
-                buffer.write(data, 0, nRead);
-            }
-            return buffer.toByteArray();
-        }
-    }
+        InputStream inputStream = assetManager.open(assetFileName);
 
-    private void initializeOrtSession(byte[] modelBytes) throws OrtException {
-        env = OrtEnvironment.getEnvironment();
-        OrtSession.SessionOptions opts = new OrtSession.SessionOptions();
-        // Configure opts for NNAPI or other accelerators if needed
-
-        if (android.os.Build.VERSION.SDK_INT >= 27) {
-            opts.addNnapi();
+        // Get the file size
+        long fileSize = inputStream.available();
+        if (fileSize > Runtime.getRuntime().maxMemory() / 4) {
+            throw new IOException("Model file is too large to load into memory");
         }
 
-        // Set the number of CPU threads
-        opts.setIntraOpNumThreads(2);
-        session = env.createSession(modelBytes, opts);
+        // Use BufferedInputStream for better performance
+        BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
+        byte[] buffer = new byte[8192]; // 8KB buffer
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        int bytesRead;
+        while ((bytesRead = bufferedInputStream.read(buffer)) != -1) {
+            outputStream.write(buffer, 0, bytesRead);
+        }
+
+        bufferedInputStream.close();
+        inputStream.close();
+
+        return outputStream.toByteArray();
     }
 
     public OrtSession getSession() {
@@ -57,5 +65,48 @@ public class OnnxReader {
         if (env != null) {
             env.close();
         }
+    }
+
+    public String performInference(String inputText) throws OrtException {
+        // Create input tensor
+        OnnxTensor inputTensor = createInputTensor(inputText);
+
+        // Run inference
+        Map<String, OnnxTensor> inputs = new HashMap<>();
+        inputs.put("input_ids", inputTensor);  // Replace "input" with your model's actual input name
+
+        try {
+            OrtSession.Result result = session.run(inputs);
+
+            // Process the output tensor
+            OnnxTensor outputTensor = (OnnxTensor) result.get(0);
+            // Convert output tensor to string - adjust based on your model's output format
+            float[] outputData = (float[]) outputTensor.getValue();
+
+            return processOutput(outputData);
+        } finally {
+            inputTensor.close();
+        }
+    }
+    private OnnxTensor createInputTensor(String inputText) throws OrtException {
+        // Convert input text to the format your model expects
+        // This is a placeholder - adjust based on your model's input requirements
+        long[] inputData = new long[inputText.length()];
+        for (int i = 0; i < inputText.length(); i++) {
+            inputData[i] = (long) inputText.charAt(i);
+        }
+
+        long[] shape = new long[]{1, inputText.length()};  // Adjust shape based on your model
+        return OnnxTensor.createTensor(env, LongBuffer.wrap(inputData), shape);
+    }
+
+    private String processOutput(float[] outputData) {
+        // Process the output data based on your model's output format
+        // This is a placeholder - implement based on your specific model
+        StringBuilder result = new StringBuilder();
+        for (float value : outputData) {
+            result.append(value).append(" ");
+        }
+        return result.toString().trim();
     }
 }

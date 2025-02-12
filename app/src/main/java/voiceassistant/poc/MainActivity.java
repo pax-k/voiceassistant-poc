@@ -25,13 +25,14 @@ public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
-    private OnnxReader speechRecognizer;
+    private OnnxReader onnxReader;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
+        initializeOnnxModel();
         setContentView(binding.getRoot());
 
         setSupportActionBar(binding.toolbar);
@@ -40,34 +41,50 @@ public class MainActivity extends AppCompatActivity {
         appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
 
-        // Initialize speech recognizer
-        try {
-            speechRecognizer = new OnnxReader(this, "/assets/model.onnx");
-        } catch (Exception e) {
-            Snackbar.make(binding.getRoot(), "Failed to initialize speech recognizer: " + e.getMessage(), 
-                         Snackbar.LENGTH_LONG).show();
-        }
 
-        binding.fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                // Start speech recognition here
-                startSpeechRecognition();
-            }
-        });
+
+        // Handle submit button click
+//        binding.submit_button.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                String inputText = binding.editText.getText().toString();
+//                if (!inputText.isEmpty() && onnxReader != null) {
+//                    try {
+//                        String result = onnxReader.performInference(inputText);
+//                        Snackbar.make(view, "Model output: " + result, Snackbar.LENGTH_LONG)
+//                                .show();
+//                    } catch (OrtException e) {
+//                        Snackbar.make(view, "Inference failed: " + e.getMessage(),
+//                                    Snackbar.LENGTH_LONG)
+//                                .show();
+//                    }
+//                }
+//            }
+//        });
     }
 
-    private void startSpeechRecognition() {
-        // TODO: Implement speech recognition logic using speechRecognizer
-        // This will depend on your specific implementation requirements
+    private void initializeOnnxModel() {
+        try {
+            onnxReader = new OnnxReader(this, "model_q4f16.onnx");
+        } catch (Exception e) {
+            Snackbar.make(binding.getRoot(), "Failed to initialize model: " + e.getMessage(),
+                    Snackbar.LENGTH_LONG).show();
+        }
+    }
+
+    public OnnxReader getOnnxReader() {
+        if (onnxReader == null) {
+            initializeOnnxModel();
+        }
+        return onnxReader;
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (speechRecognizer != null) {
+        if (onnxReader != null) {
             try {
-                speechRecognizer.close();
+                onnxReader.close();
             } catch (OrtException e) {
                 e.printStackTrace();
             }
