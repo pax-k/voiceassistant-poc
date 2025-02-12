@@ -14,9 +14,13 @@
 .cxx
 local.properties
 
+/mylibrary/assets/model_q4f16.onnx
+mylibrary/assets/model_q4f16.onnx
 
 /mylibrary/assets/model.onnx
 mylibrary/assets/model.onnx
+
+/mylibrary/assets/
 
 /build
 
