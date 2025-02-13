@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -73,7 +74,7 @@ public class FirstFragment extends Fragment {
                 String result = onnxReader.performInference(inputText);
                 // Update UI on main thread
                 requireActivity().runOnUiThread(() -> {
-                    showSuccess("Model output: " + result);
+                    displayModelOutput(result);
                     binding.submitButton.setEnabled(true);
 //                    binding.progressBar.setVisibility(View.GONE);
                 });
@@ -88,13 +89,31 @@ public class FirstFragment extends Fragment {
         }).start();
     }
 
-    private void showError(String message) {
-        if (isAdded()) {  // Check if fragment is still attached
-            Snackbar.make(requireView(), message, Snackbar.LENGTH_LONG).show();
+    private void displayModelOutput(String result) {
+        if (!isAdded()) return;  // Check if fragment is still attached
+
+        // Update the output TextView if it exists
+        if (binding.outputText != null) {
+            binding.outputText.setText(result);
+            binding.outputText.setVisibility(View.VISIBLE);
         }
+
+        // Show a material card with the result
+        Snackbar snackbar = Snackbar.make(requireView(), "Model Response:", Snackbar.LENGTH_INDEFINITE)
+                .setAction("DISMISS", v -> {})
+                .setActionTextColor(getResources().getColor(android.R.color.white, null));
+
+        // Customize the snackbar view
+        View snackbarView = snackbar.getView();
+        snackbarView.setBackgroundColor(getResources().getColor(com.google.android.material.R.color.design_default_color_primary, null));
+        TextView textView = snackbarView.findViewById(com.google.android.material.R.id.snackbar_text);
+        textView.setMaxLines(5);  // Allow multiple lines
+        textView.setText(result);
+        
+        snackbar.show();
     }
 
-    private void showSuccess(String message) {
+    private void showError(String message) {
         if (isAdded()) {  // Check if fragment is still attached
             Snackbar.make(requireView(), message, Snackbar.LENGTH_LONG).show();
         }

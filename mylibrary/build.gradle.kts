@@ -30,6 +30,7 @@ android {
 
 dependencies {
     implementation("com.microsoft.onnxruntime:onnxruntime-android:latest.release")
+    implementation ("com.microsoft.onnxruntime:onnxruntime-extensions:latest.release")
     // (Optional) Smaller runtime: implementation("com.microsoft.onnxruntime:onnxruntime-mobile:latest.release")
     
     implementation(libs.appcompat)
