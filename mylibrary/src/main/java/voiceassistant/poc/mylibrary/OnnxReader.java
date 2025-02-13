@@ -20,12 +20,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-// import ai.onnxruntime.OnnxRuntime;
-// import ai.onnxruntime.OrtEnvironment;
-// import ai.onnxruntime.OrtSession;
-// import ai.onnxruntime.OrtException;
-//import ai.onnxruntime.providers.cpu.CPUProviderOptions;
-//import ai.onnxruntime.Model;
+import ai.onnxruntime.genai.GenAIException;
+//import ai.onnxruntime.genai.Sequences;
+//import ai.onnxruntime.genai.TokenizerStream;
+//import ai.onnxruntime.genai.Model;
+//import ai.onnxruntime.genai.Tokenizer;
 
 public class OnnxReader {
 
@@ -36,6 +35,7 @@ public class OnnxReader {
 
     public OnnxReader(Context context, String assetFileName, Tokenizer tokenizer) throws IOException, OrtException {
         this.tokenizer = tokenizer;
+//        this.tokenizer= new Tokenizer(this);
         byte[] modelBytes = loadModelFile(context, assetFileName);
         env = OrtEnvironment.getEnvironment();
         OrtSession.SessionOptions opts = new OrtSession.SessionOptions();

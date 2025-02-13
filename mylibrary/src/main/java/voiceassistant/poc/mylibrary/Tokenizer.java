@@ -7,8 +7,10 @@ import org.json.JSONObject;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class Tokenizer {
@@ -17,7 +19,7 @@ public class Tokenizer {
     private final long PAD_TOKEN_ID = 0L;  // Assume 0 is the ID for padding token
 
     public Tokenizer(Context context) throws Exception {
-        this.vocab = loadVocab(context, "tokenizer_vocabb.json");
+        this.vocab = loadVocab(context, "tokenizer_vocab.json");
         this.reverseVocab = new HashMap<>();
         for (Map.Entry<String, Long> entry : vocab.entrySet()) {
             reverseVocab.put(entry.getValue(), entry.getKey());
@@ -54,34 +56,55 @@ public class Tokenizer {
     }
 
     public TokenizedOutput tokenize(String text) {
-        String[] words = text.split(" ");
-        long[] tokenIds = new long[words.length];
-        long[] attentionMask = new long[words.length];
-
-        int maxLength =10;
-
-        // Tokenize and generate attention mask
-        for (int i = 0; i < words.length; i++) {
-            tokenIds[i] = vocab.getOrDefault(words[i], PAD_TOKEN_ID); // 0 for unknown tokens
-            attentionMask[i] = (tokenIds[i] == PAD_TOKEN_ID) ? 0L : 1L;  // 1 for valid tokens, 0 for padding/unknown
+        // Preprocess text: add space prefix for GPT-style tokenization
+        text = " " + text.trim();
+        
+        // Split into potential tokens, preserving spaces
+        StringBuilder currentToken = new StringBuilder();
+        java.util.List<String> tokens = new ArrayList<>();
+        
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (Character.isWhitespace(c)) {
+                if (currentToken.length() > 0) {
+                    tokens.add(currentToken.toString());
+                    currentToken = new StringBuilder();
+                }
+                // Add space prefix token
+                tokens.add("Ġ" + String.valueOf(text.charAt(Math.min(i + 1, text.length() - 1))));
+                i++; // Skip next character as it's included in the space token
+            } else {
+                currentToken.append(c);
+            }
+        }
+        // Add last token if exists
+        if (currentToken.length() > 0) {
+            tokens.add(currentToken.toString());
         }
 
-        // Pad if necessary
-        int paddingLength = maxLength - tokenIds.length;
-        if (paddingLength > 0) {
-            long[] paddedTokenIds = new long[maxLength];
-            long[] paddedAttentionMask = new long[maxLength];
-
-            System.arraycopy(tokenIds, 0, paddedTokenIds, 0, tokenIds.length);
-            System.arraycopy(attentionMask, 0, paddedAttentionMask, 0, attentionMask.length);
-
-            // Add padding
-            for (int i = tokenIds.length; i < maxLength; i++) {
-                paddedTokenIds[i] = PAD_TOKEN_ID;
-                paddedAttentionMask[i] = 0L;
+        // Convert tokens to IDs with fixed length
+        int maxLength = 512; // or your model's maximum sequence length
+        long[] tokenIds = new long[maxLength];
+        long[] attentionMask = new long[maxLength];
+        
+        // Fill token IDs and attention mask
+        for (int i = 0; i < maxLength; i++) {
+            if (i < tokens.size()) {
+                String token = tokens.get(i);
+                // Try different token variations
+                Long id = vocab.get(token);
+                if (id == null) {
+                    id = vocab.get("Ġ" + token);
+                }
+                if (id == null) {
+                    id = vocab.get(token.toLowerCase());
+                }
+                tokenIds[i] = id != null ? id : PAD_TOKEN_ID;
+                attentionMask[i] = id != null ? 1L : 0L;
+            } else {
+                tokenIds[i] = PAD_TOKEN_ID;
+                attentionMask[i] = 0L;
             }
-
-            return new TokenizedOutput(paddedTokenIds, paddedAttentionMask);
         }
 
         return new TokenizedOutput(tokenIds, attentionMask);
@@ -109,14 +132,20 @@ public class Tokenizer {
         StringBuilder result = new StringBuilder();
         for (long id : tokenIds) {
             String token = reverseVocab.getOrDefault(id, "");
-            // Skip empty tokens and add space between words
             if (!token.isEmpty()) {
-                if (result.length() > 0) {
-                    result.append(" ");
+                // Handle special tokens
+                if (token.startsWith("Ġ")) {
+                    // Remove the special prefix and add space
+                    result.append(" ").append(token.substring(1));
+                } else {
+                    result.append(token);
                 }
-                result.append(token);
             }
         }
-        return result.toString().trim();
+        // Clean up the text
+        return result.toString()
+                .trim()
+                .replaceAll("\\s+", " ")
+                .replaceAll("Ġ", ""); // Remove any remaining special tokens
     }
 }
